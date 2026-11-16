@@ -1203,6 +1203,11 @@ func applyClaudeHeadersWithNativeProfile(
 	if r == nil {
 		return nil
 	}
+	// FORK (pass-through): a claude-api-key entry whose api-key is the sentinel
+	// forwards the caller's own Claude Code credential instead of a stored one.
+	if apiKey == claudePassthroughSentinel {
+		apiKey = claudeIncomingBearer(r, incomingHeaders)
+	}
 	hdrDefault := func(cfgVal, fallback string) string {
 		if cfgVal != "" {
 			return cfgVal

@@ -1462,6 +1462,16 @@ func (m *Manager) MarkResult(ctx context.Context, result Result) {
 			}
 		}
 	}
+	// FORK (pass-through): the pass-through entry carries each caller's own
+	// credential, so one caller's 401/429 must never cool it for everyone.
+	m.mu.RLock()
+	ptAuth := m.auths[result.AuthID]
+	isPassthrough := ptAuth != nil && ptAuth.Attributes != nil && ptAuth.Attributes["api_key"] == "passthrough-client-credential"
+	m.mu.RUnlock()
+	if isPassthrough {
+		m.hook.OnResult(ctx, result)
+		return
+	}
 	modelKey := canonicalModelKey(result.Model)
 
 	var authSnapshot *Auth
