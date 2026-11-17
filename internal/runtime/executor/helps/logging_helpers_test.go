@@ -241,7 +241,7 @@ func TestDeferredAPIResponseCapturedAndAlignedAcrossAttempts(t *testing.T) {
 	for _, want := range []string{
 		"=== API RESPONSE 2 ===",
 		"Status: 502",
-		"Authorization: Bearer supe...oken",
+		"Authorization: Bearer [redacted]", // FORK: no credential fragment in logs
 		"Content-Type: text/event-stream",
 		"event: response.created\ndata: {\"type\":\"response.created\"}",
 		"Error: stream disconnected\n\n=== API RESPONSE 3 ===",

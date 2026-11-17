@@ -214,9 +214,12 @@ func MaskAuthorizationHeader(value string) string {
 // MaskSensitiveHeaderValue masks sensitive header values while preserving expected formats.
 //
 // Behavior by header key (case-insensitive):
-//   - "Authorization": Preserve the auth type prefix (e.g., "Bearer ") and mask only the credential part.
-//   - Headers containing "api-key", "apikey", "token", "secret", or "cookie": Mask the entire value using HideAPIKey.
+//   - "Authorization": Preserve the auth type prefix (e.g., "Bearer ") and redact the credential part.
+//   - Headers containing "api-key", "apikey", "token", "secret", or "cookie": Redact the entire value.
 //   - Others: Return the original value unchanged.
+//
+// FORK (pass-through capture): sensitive values are replaced outright, with no first-4/last-4
+// fragment, because the request log stores every caller's own credential header.
 //
 // Parameters:
 //   - key:   The HTTP header name to inspect (case-insensitive matching).
@@ -224,17 +227,23 @@ func MaskAuthorizationHeader(value string) string {
 //
 // Returns:
 //   - string: The masked value according to the header type; unchanged if not sensitive.
+const redactedHeaderValue = "[redacted]"
+
 func MaskSensitiveHeaderValue(key, value string) string {
 	lowerKey := strings.ToLower(strings.TrimSpace(key))
 	switch {
 	case strings.Contains(lowerKey, "authorization"):
-		return MaskAuthorizationHeader(value)
+		parts := strings.SplitN(strings.TrimSpace(value), " ", 2)
+		if len(parts) < 2 {
+			return redactedHeaderValue
+		}
+		return parts[0] + " " + redactedHeaderValue
 	case strings.Contains(lowerKey, "api-key"),
 		strings.Contains(lowerKey, "apikey"),
 		strings.Contains(lowerKey, "token"),
 		strings.Contains(lowerKey, "secret"),
 		strings.Contains(lowerKey, "cookie"):
-		return HideAPIKey(value)
+		return redactedHeaderValue
 	default:
 		return value
 	}

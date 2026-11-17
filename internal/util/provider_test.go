@@ -55,6 +55,17 @@ func TestMaskSensitiveHeaderValueMasksCookiesAndSecrets(t *testing.T) {
 		}
 	}
 
+	// FORK: no fragment of the credential survives, not even its first or last 4 characters.
+	for _, tc := range []struct{ key, value, want string }{
+		{"Authorization", "Bearer abcd-middle-wxyz", "Bearer [redacted]"},
+		{"Authorization", "abcdmiddlewxyz", "[redacted]"},
+		{"X-Api-Key", "abcd-middle-wxyz", "[redacted]"},
+	} {
+		if got := util.MaskSensitiveHeaderValue(tc.key, tc.value); got != tc.want {
+			t.Fatalf("MaskSensitiveHeaderValue(%q) = %q, want %q", tc.key, got, tc.want)
+		}
+	}
+
 	if got := util.MaskSensitiveHeaderValue("X-Request-Id", "req-plain-123"); got != "req-plain-123" {
 		t.Fatalf("MaskSensitiveHeaderValue(X-Request-Id) = %q, want unchanged", got)
 	}
